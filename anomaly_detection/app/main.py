@@ -10,7 +10,6 @@ import base64
 
 app = FastAPI(title="Defect Detection API", version="1.0.0")
 
-# CORS (adjust for your domains in production)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

@@ -7,11 +7,11 @@ from PIL import Image
 from celery import Celery, states
 from celery.utils.log import get_task_logger
 from .settings import settings
-from .inference import analyze  # should perform defect detection and return dict with 'processed_image'
+from .inference import analyze  
 
 logger = get_task_logger(__name__)
 
-# Initialize Celery
+# Celery
 celery_app = Celery(
     "defect_worker",
     broker=settings.BROKER_URL,
@@ -35,11 +35,11 @@ def process_media(self, file_path: str):
         # Run defect detection
         processed_data = analyze(file_path)
 
-        # Extract image and metrics
+        # Extracting image and metrics
         processed_img = processed_data.get("processed_image")
         metrics = processed_data.get("metrics", {})
 
-        # Validate processed image
+        # Validating processed image
         if processed_img is None:
             raise ValueError(f"No processed image returned for {file_path}")
 
@@ -51,14 +51,13 @@ def process_media(self, file_path: str):
         if not isinstance(processed_img, np.ndarray):
             raise TypeError(f"Processed image is not a NumPy array: {type(processed_img)}")
 
-        # Encode image to Base64
+        # Encode to Base64
         success, buffer = cv2.imencode(".jpg", processed_img)
         if not success:
             raise ValueError("Failed to encode processed image")
 
         img_base64 = base64.b64encode(buffer).decode("utf-8")
 
-        # Prepare and return result
         result = {
             "image_base64": img_base64,
             "metrics": metrics,

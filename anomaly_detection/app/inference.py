@@ -52,10 +52,8 @@ def analyze_image(path: Path) -> dict:
     defect_score += min(red_ratio / 0.3, 0.4)  
     defect_score = min(defect_score, 1.0) 
 
-    # --- Determine defect presence ---
     has_defect = blurry or (red_ratio > 0.12) or (edge_density_norm > 0.15) or defect_score >= 0.45
 
-    # --- Draw defects on image ---
     result_img = img.copy()
     if blurry:
         cv2.putText(result_img, "Blurry!", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 2)
@@ -64,7 +62,6 @@ def analyze_image(path: Path) -> dict:
     if edge_density_norm > 0.15:
         result_img[edges > 0] = [255, 0, 0]
 
-    # --- Encode to Base64 ---
     _, buffer = cv2.imencode(".jpg", result_img)
     img_base64 = base64.b64encode(buffer).decode("utf-8")
 
