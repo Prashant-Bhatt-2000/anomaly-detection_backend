@@ -1,5 +1,6 @@
 from pathlib import Path
 from pydantic_settings import BaseSettings
+import base64
 
 class Settings(BaseSettings):
     DATA_DIR: Path = Path(__file__).parent.parent / "data"

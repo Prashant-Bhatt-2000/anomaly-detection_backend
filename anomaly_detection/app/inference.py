@@ -1,6 +1,21 @@
 import cv2
 import numpy as np
 from pathlib import Path
+import base64
+
+
+def _is_image(path: Path) -> bool:
+    return path.suffix.lower() in {".jpg", ".jpeg", ".png", ".bmp", ".webp", ".tiff"}
+
+
+def _is_video(path: Path) -> bool:
+    return path.suffix.lower() in {".mp4", ".mov", ".avi", ".mkv", ".webm"}
+
+
+import cv2
+import numpy as np
+from pathlib import Path
+import base64
 
 
 def _is_image(path: Path) -> bool:
@@ -18,20 +33,27 @@ def analyze_image(path: Path) -> dict:
 
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-    # Blur score
+    # --- Blur detection ---
     fm = cv2.Laplacian(gray, cv2.CV_64F).var()
-    blurry = fm < 80.0
+    # Adjusted threshold for blurry detection
+    blurry = fm < 50.0  
 
-    # Edge detection
+    # --- Edge detection ---
     edges = cv2.Canny(gray, 100, 200)
     edge_density_norm = float(edges.mean()) / 255.0
 
-    # Red dominance
+    # --- Red dominance detection ---
     b, g, r = cv2.split(img)
     red_ratio = float(np.mean((r > 150) & (g < 120) & (b < 120)))
 
-    defect_score = (1.0 if blurry else 0.0) * 0.6 + edge_density_norm * 0.3 + red_ratio * 0.4
-    has_defect = (defect_score >= 0.45) or blurry or (red_ratio > 0.12)
+    defect_score = 0
+    defect_score += 0.6 if blurry else 0.0
+    defect_score += min(edge_density_norm / 0.33, 0.3) 
+    defect_score += min(red_ratio / 0.3, 0.4)  
+    defect_score = min(defect_score, 1.0) 
+
+    # --- Determine defect presence ---
+    has_defect = blurry or (red_ratio > 0.12) or (edge_density_norm > 0.15) or defect_score >= 0.45
 
     # --- Draw defects on image ---
     result_img = img.copy()
@@ -39,11 +61,10 @@ def analyze_image(path: Path) -> dict:
         cv2.putText(result_img, "Blurry!", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 2)
     if red_ratio > 0.12:
         cv2.putText(result_img, "Red anomaly!", (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 2)
-    if edge_density_norm > 0.15:  # threshold for "scratches"
-        # Highlight edges in blue
+    if edge_density_norm > 0.15:
         result_img[edges > 0] = [255, 0, 0]
 
-    # Encode to Base64 for frontend
+    # --- Encode to Base64 ---
     _, buffer = cv2.imencode(".jpg", result_img)
     img_base64 = base64.b64encode(buffer).decode("utf-8")
 
@@ -57,7 +78,8 @@ def analyze_image(path: Path) -> dict:
             "defect_score": float(defect_score),
         },
         "defect_detected": bool(has_defect),
-        "image_base64": img_base64
+        "image_base64": img_base64,
+        "processed_image": result_img
     }
 
 

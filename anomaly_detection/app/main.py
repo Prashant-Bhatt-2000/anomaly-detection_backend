@@ -6,6 +6,7 @@ from starlette.responses import JSONResponse
 from celery.result import AsyncResult
 from .worker import process_media, celery_app
 from .settings import settings
+import base64
 
 app = FastAPI(title="Defect Detection API", version="1.0.0")
 
